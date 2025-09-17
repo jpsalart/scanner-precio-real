@@ -6,39 +6,35 @@ export async function POST(request) {
     
     console.log('🔍 Variables disponibles:', {
       KV_REST_API_URL: process.env.KV_REST_API_URL ? 'Existe' : 'No existe',
-      KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN ? 'Existe' : 'No existe',
-      REDIS_URL: process.env.REDIS_URL ? 'Existe' : 'No existe'
+      KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN ? 'Existe' : 'No existe'
     });
     
     const REDIS_URL = process.env.KV_REST_API_URL;
     const REDIS_TOKEN = process.env.KV_REST_API_TOKEN;
     
     if (!REDIS_URL || !REDIS_TOKEN) {
-      console.log('⚠️ KV no configurado');
       return NextResponse.json({
         success: true,
-        data: {
-          totalSearches: 999,
-          note: 'KV no configurado - modo simulado'
-        }
+        data: { totalSearches: 999, note: 'KV no configurado' }
       });
     }
     
     console.log('🚀 Intentando conectar a KV...');
     
-    // Incrementar contador simple
+    // FORMATO CORRECTO para Upstash REST API
     const response = await fetch(`${REDIS_URL}/incr/total_searches`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${REDIS_TOKEN}`,
-        'Content-Type': 'application/json'
+        'Authorization': `Bearer ${REDIS_TOKEN}`
       }
     });
     
     console.log('📊 Respuesta KV:', response.status);
     
     if (!response.ok) {
-      throw new Error(`KV error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ Error KV:', errorText);
+      throw new Error(`KV error: ${response.status} - ${errorText}`);
     }
     
     const data = await response.json();
@@ -65,7 +61,7 @@ export async function GET() {
   const REDIS_URL = process.env.KV_REST_API_URL;
   const REDIS_TOKEN = process.env.KV_REST_API_TOKEN;
   
-  if (!REDIS_URL) {
+  if (!REDIS_URL || !REDIS_TOKEN) {
     return NextResponse.json({
       success: true,
       data: { totalSearches: 0, note: 'KV no configurado' }
@@ -76,6 +72,10 @@ export async function GET() {
     const response = await fetch(`${REDIS_URL}/get/total_searches`, {
       headers: { 'Authorization': `Bearer ${REDIS_TOKEN}` }
     });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
     
     const data = await response.json();
     
