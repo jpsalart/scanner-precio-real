@@ -7,6 +7,20 @@ const KNOWN_PRODUCTS = {
     image: 'https://m.media-amazon.com/images/I/81s9QAXZ7VL._AC_UF1000,1000_QL80_.jpg',
     basePrice: 12.99,
     asin: 'B00E8KEYPC'
+  },
+  '8433548037768': {
+    title: 'El Padrino - Película DVD Edición Especial',
+    category: 'Películas y TV',
+    image: 'https://m.media-amazon.com/images/I/81x7P9Z1NFL._AC_UF1000,1000_QL80_.jpg',
+    basePrice: 14.95,
+    asin: 'B00KQJZQ4A'
+  },
+  '8437008764108': {
+    title: 'Samsung Galaxy Buds2 Pro - Auriculares Inalámbricos',
+    category: 'Electrónicos',
+    image: 'https://m.media-amazon.com/images/I/61wJXVVEQKL._AC_UF1000,1000_QL80_.jpg',
+    basePrice: 159.99,
+    asin: 'B0B2SG5T4J'
   }
 };
 

@@ -2,36 +2,32 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    const { barcode, product, timestamp } = await request.json();
+    const { barcode, product } = await request.json();
     
-    if (!barcode || !product) {
-      return NextResponse.json({
-        success: false,
-        error: 'Datos insuficientes'
-      }, { status: 400 });
-    }
+    console.log('🔍 Variables disponibles:', {
+      KV_REST_API_URL: process.env.KV_REST_API_URL ? 'Existe' : 'No existe',
+      KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN ? 'Existe' : 'No existe',
+      REDIS_URL: process.env.REDIS_URL ? 'Existe' : 'No existe'
+    });
     
-    // Usar variables de entorno de Upstash
-    const REDIS_URL = process.env.URL || process.env.UPSTASH_REDIS_REST_URL;
-    const REDIS_TOKEN = process.env.TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+    const REDIS_URL = process.env.KV_REST_API_URL;
+    const REDIS_TOKEN = process.env.KV_REST_API_TOKEN;
     
     if (!REDIS_URL || !REDIS_TOKEN) {
-      console.log('⚠️ KV no configurado, modo simulado');
+      console.log('⚠️ KV no configurado');
       return NextResponse.json({
         success: true,
         data: {
-          searchId: `sim:${Date.now()}`,
-          totalSearches: Math.floor(Math.random() * 100) + 50,
-          note: 'KV no configurado - datos simulados'
+          totalSearches: 999,
+          note: 'KV no configurado - modo simulado'
         }
       });
     }
     
-    // Guardar en Redis/KV real
-    const searchId = `search:${Date.now()}:${barcode}`;
+    console.log('🚀 Intentando conectar a KV...');
     
-    // Incrementar contador total
-    const totalResponse = await fetch(`${REDIS_URL}/incr/total_searches`, {
+    // Incrementar contador simple
+    const response = await fetch(`${REDIS_URL}/incr/total_searches`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${REDIS_TOKEN}`,
@@ -39,96 +35,62 @@ export async function POST(request) {
       }
     });
     
-    const totalData = await totalResponse.json();
-    const totalSearches = totalData.result || 1;
+    console.log('📊 Respuesta KV:', response.status);
     
-    // Guardar búsqueda individual
-    const searchData = {
-      id: searchId,
-      barcode,
-      product: {
-        title: product.title,
-        price: product.price,
-        category: product.category
-      },
-      timestamp: timestamp || new Date().toISOString()
-    };
+    if (!response.ok) {
+      throw new Error(`KV error: ${response.status}`);
+    }
     
-    await fetch(`${REDIS_URL}/set/${searchId}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${REDIS_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ value: JSON.stringify(searchData) })
-    });
-    
-    console.log(`💾 Búsqueda guardada en KV: ${barcode} - Total: ${totalSearches}`);
+    const data = await response.json();
+    console.log('✅ KV respuesta:', data);
     
     return NextResponse.json({
       success: true,
       data: {
-        searchId,
-        totalSearches,
-        barcodeCount: 1
+        totalSearches: data.result || 1,
+        searchId: `search_${Date.now()}`
       }
     });
     
   } catch (error) {
-    console.error('❌ Error guardando en KV:', error);
+    console.error('❌ Error save-search:', error);
     return NextResponse.json({
       success: false,
-      error: 'Error guardando datos'
-    }, { status: 500 });
+      error: error.message
+    });
   }
 }
 
 export async function GET() {
+  const REDIS_URL = process.env.KV_REST_API_URL;
+  const REDIS_TOKEN = process.env.KV_REST_API_TOKEN;
+  
+  if (!REDIS_URL) {
+    return NextResponse.json({
+      success: true,
+      data: { totalSearches: 0, note: 'KV no configurado' }
+    });
+  }
+  
   try {
-const REDIS_URL = process.env.KV_REST_API_URL || process.env.REDIS_URL;
-const REDIS_TOKEN = process.env.KV_REST_API_TOKEN;
-    
-    if (!REDIS_URL || !REDIS_TOKEN) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          totalSearches: 42,
-          recentSearches: [],
-          note: 'KV no configurado - datos simulados'
-        }
-      });
-    }
-    
-    // Obtener total de búsquedas
-    const totalResponse = await fetch(`${REDIS_URL}/get/total_searches`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${REDIS_TOKEN}`
-      }
+    const response = await fetch(`${REDIS_URL}/get/total_searches`, {
+      headers: { 'Authorization': `Bearer ${REDIS_TOKEN}` }
     });
     
-    const totalData = await totalResponse.json();
-    const totalSearches = totalData.result || 0;
+    const data = await response.json();
     
     return NextResponse.json({
       success: true,
       data: {
-        totalSearches,
-        recentSearches: [],
-        timestamp: new Date().toISOString(),
+        totalSearches: data.result || 0,
         note: 'KV conectado y funcionando ✅'
       }
     });
     
   } catch (error) {
-    console.error('❌ Error obteniendo stats:', error);
     return NextResponse.json({
       success: true,
-      data: {
-        totalSearches: 0,
-        recentSearches: [],
-        note: 'Error conectando KV'
-      }
+      data: { totalSearches: 0, note: 'Error KV: ' + error.message }
     });
   }
 }
