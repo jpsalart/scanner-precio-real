@@ -21,6 +21,17 @@ export default function Home() {
       
       if (data.success) {
         setResult(data.product);
+        
+        // ¡ESTA LÍNEA FALTABA! - Guardar búsqueda en KV
+        await fetch('/api/save-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            barcode, 
+            product: data.product,
+            timestamp: new Date().toISOString()
+          }),
+        });
       }
     } catch (error) {
       console.error(error);
