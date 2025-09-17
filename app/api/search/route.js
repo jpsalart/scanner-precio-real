@@ -10,7 +10,7 @@ const KNOWN_PRODUCTS = {
   }
 };
 
-const ASSOCIATE_TAG = 'precioreales-21';
+const ASSOCIATE_TAG = 'drbitymrcoin-21';
 
 function generatePrice(basePrice) {
   const variation = (Math.random() - 0.5) * 0.2;
